@@ -57,6 +57,7 @@ static void cli_classic_usage(const char *name)
 	       " -l | --layout <layoutfile>         read ROM layout from <layoutfile>\n"
 	       " -i | --image <name>                only flash image <name> from flash layout\n"
 	       " -o | --output <logfile>            log output to <logfile>\n"
+	       " -C | --flash-contents <contentsfile> assume flash contents to be <contentsfile>\n"
 	       " -L | --list-supported              print supported devices\n"
 #if CONFIG_PRINT_WIKI == 1
 	       " -z | --list-supported-wiki         print supported devices in wiki syntax\n"
@@ -106,7 +107,7 @@ int main(int argc, char *argv[])
 	enum programmer prog = PROGRAMMER_INVALID;
 	int ret = 0;
 
-	static const char optstring[] = "r:Rw:v:nVEfc:l:i:p:Lzho:";
+	static const char optstring[] = "r:Rw:v:nVEfc:l:i:C:p:Lzho:";
 	static const struct option long_options[] = {
 		{"read",		1, NULL, 'r'},
 		{"write",		1, NULL, 'w'},
@@ -118,6 +119,7 @@ int main(int argc, char *argv[])
 		{"force",		0, NULL, 'f'},
 		{"layout",		1, NULL, 'l'},
 		{"image",		1, NULL, 'i'},
+		{"flash-contents",	1, NULL, 'C'},
 		{"list-supported",	0, NULL, 'L'},
 		{"list-supported-wiki",	0, NULL, 'z'},
 		{"programmer",		1, NULL, 'p'},
@@ -128,6 +130,7 @@ int main(int argc, char *argv[])
 	};
 
 	char *filename = NULL;
+	char *contentsfile = NULL;
 	char *layoutfile = NULL;
 #ifndef STANDALONE
 	char *logfile = NULL;
@@ -220,6 +223,9 @@ int main(int argc, char *argv[])
 				free(tempstr);
 				cli_classic_abort_usage();
 			}
+			break;
+		case 'C':
+			contentsfile = strdup(optarg);
 			break;
 		case 'L':
 			if (++operation_specified > 1) {
@@ -330,6 +336,9 @@ int main(int argc, char *argv[])
 		cli_classic_abort_usage();
 	}
 	if (layoutfile && check_filename(layoutfile, "layout")) {
+		cli_classic_abort_usage();
+	}
+	if (contentsfile && check_filename(contentsfile, "contents")) {
 		cli_classic_abort_usage();
 	}
 
@@ -542,7 +551,7 @@ int main(int argc, char *argv[])
 	 * Give the chip time to settle.
 	 */
 	programmer_delay(100000);
-	ret |= doit(fill_flash, force, filename, read_it, write_it, erase_it, verify_it);
+	ret |= doit(fill_flash, force, filename, contentsfile, read_it, write_it, erase_it, verify_it);
 
 	unmap_flash(fill_flash);
 out_shutdown:
@@ -554,6 +563,7 @@ out:
 	layout_cleanup();
 	free(filename);
 	free(layoutfile);
+	free(contentsfile);
 	free(pparam);
 	/* clean up global variables */
 	free((char *)chip_to_probe); /* Silence! Freeing is not modifying contents. */
