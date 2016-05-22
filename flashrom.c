@@ -1976,8 +1976,9 @@ int chip_safety_check(const struct flashctx *flash, int force, int read_it, int 
  * but right now it allows us to split off the CLI code.
  * Besides that, the function itself is a textbook example of abysmal code flow.
  */
-int doit(struct flashctx *flash, int force, const char *filename, int read_it,
-	 int write_it, int erase_it, int verify_it)
+int doit(struct flashctx *flash, int force, const char *filename,
+	 const char *contentsfile, int read_it, int write_it, int erase_it,
+	 int verify_it)
 {
 	uint8_t *oldcontents;
 	uint8_t *newcontents;
@@ -2065,7 +2066,14 @@ int doit(struct flashctx *flash, int force, const char *filename, int read_it,
 	 * preserved, but in that case we might perform unneeded erase which
 	 * takes time as well.
 	 */
-	if (read_all_first) {
+	if (contentsfile) {
+		msg_cinfo("Reading old flash chip contents from file... ");
+		if (read_buf_from_file(oldcontents, size, contentsfile)) {
+			ret = 1;
+			msg_cinfo("FAILED.\n");
+			goto out;
+		}
+	} else if (read_all_first) {
 		msg_cinfo("Reading old flash chip contents... ");
 		if (flash->chip->read(flash, oldcontents, 0, size)) {
 			ret = 1;
